@@ -70,13 +70,17 @@ Older esptool versions (before v5) use `esptool.py` and spell the commands `read
 
 ### Arduino environment (versions used during development)
 
-| Item | Version |
-|---|---|
-| Arduino ESP32 core (Espressif) | 3.3.11 |
-| LVGL | 8.4.0 (with `firmware/lv_conf.h`) |
-| arduino-audio-tools (pschatzmann) | 1.2.7 |
-| arduino-libhelix (MP3 decoder for AudioTools) | the version that matches AudioTools 1.2.7 |
-| ESP32-A2DP (pschatzmann), ESP32 sketch only | 1.8.12 |
+| Item | Version | Where to get it |
+|---|---|---|
+| esp32 board package by Espressif Systems | 3.3.11 | Boards Manager |
+| lvgl | 8.4.0 | Library Manager (use with `firmware/lv_conf.h`) |
+| DevLab_AudioTools (Phil Schatzmann and others) | 1.2.7 | Library Manager |
+| DevLab_LibHelix (MP3 decoder for AudioTools) | 0.9.4 | Library Manager |
+| ESP32-A2DP (Phil Schatzmann), ESP32 sketch only | 1.8.12 | Not in Library Manager: download from [github.com/pschatzmann/ESP32-A2DP](https://github.com/pschatzmann/ESP32-A2DP) |
+
+To install ESP32-A2DP:
+1. On its GitHub page, click **Code → Download ZIP**, or download version 1.8.12 from its Releases page.
+2. In the Arduino IDE, choose **Sketch → Include Library → Add .ZIP Library…** and pick the downloaded file.
 
 Copy `firmware/lv_conf.h` into your Arduino `libraries` folder, next to the `lvgl` folder. It enables the Montserrat fonts 12–28 and sets a 48 KB LVGL memory pool.
 
@@ -123,6 +127,9 @@ At first boot the player scans each library and writes its index, which takes a 
 
 ## Using it
 
+The full **[User Guide](docs/USER_GUIDE.md)** ([PDF](docs/USER_GUIDE.pdf)) explains every screen. In brief:
+
+
 - **Select Music page:** choose a library, PLAYLISTS, or OUTPUT (on page 2). SHUF, SETTINGS and RPT are along the top.
 - **Turning the knob:** in the browser it turns pages; while playing it sets the volume.
 - **Playing screen:**
@@ -138,12 +145,12 @@ At first boot the player scans each library and writes its index, which takes a 
 
 ## Licence
 
-This project is licensed under the **GNU General Public License v3.0** (see `LICENSE`). It uses arduino-audio-tools, which is also GPL-3.0.
+This project is licensed under the **GNU General Public License v3.0** (see `LICENSE`). It uses AudioTools (DevLab_AudioTools, originally arduino-audio-tools by Phil Schatzmann), which is also GPL-3.0.
 
 Some files come from other sources and keep their own licences:
 - `esp_lcd_sh8601.c/.h` and `bidi_switch_knob.c/.h`: Espressif Systems, Apache-2.0 (see the file headers).
 - `lcd_bsp.c/.h`, `lcd_bl_pwm_bsp.c/.h`, `cst816.cpp/.h`, `sd_card_bsp.cpp/.h`, `lcd_config.h`: based on Waveshare's demo code for this board, with changes.
-- LVGL (MIT), ESP32-A2DP (Apache-2.0) and arduino-audio-tools (GPL-3.0) are used as libraries and are not included here.
+- LVGL (MIT), ESP32-A2DP (Apache-2.0), AudioTools (GPL-3.0) and LibHelix are used as libraries and are not included here.
 
 ## Status
 
