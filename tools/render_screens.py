@@ -1,7 +1,7 @@
-"""Renders representative mock-ups of the Waveshare Music Player screens.
+"""Renders representative mock-ups of the RotaTune screens.
 
 Layout values (positions, sizes, colours, font sizes, labels) are copied from
-Waveshare_Music_Player_v0.17.7.ino and player_ui_config.h (default colours).
+RotaTune.ino (v0.17.7 layout) and player_ui_config.h (default colours).
 Text uses Inter in place of LVGL's Montserrat, so glyph widths differ slightly.
 All names, titles and numbers are invented sample data.
 """

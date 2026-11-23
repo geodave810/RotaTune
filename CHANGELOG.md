@@ -1,6 +1,7 @@
-# Changelog
+# RotaTune changelog
 
 ## 0.18.0: first public release
+- Project named RotaTune.
 - Libraries are found on the SD card: each folder in `Music_Library` is a library (up to 8).
 - SHUF/RPT buttons are labelled correctly at start-up.
 

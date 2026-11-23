@@ -1,6 +1,6 @@
 #pragma once
 /*
-  Waveshare Music Player - user-adjustable UI configuration
+  RotaTune - user-adjustable UI configuration
   ----------------------------------------------------------
   This file is intended for small layout and appearance adjustments without
   editing the main player sketch.

@@ -1,4 +1,6 @@
-# Waveshare Knob Music Player: User Guide
+# RotaTune User Guide
+
+*An MP3 music player for the Waveshare ESP32-S3-Knob-Touch-LCD-1.8*
 
 This guide explains how to use the player day to day. To install the firmware, see the [README](../README.md).
 

@@ -1,7 +1,8 @@
 /*
-  Classic_Link_A2DP_Receiver  v0.5.0
+  RotaTune_Bluetooth  v0.5.0
   ------------------------------------------------------------------------
-  Bluetooth transmitter for Waveshare Music Player v0.16.9. Runs on the
+  RotaTune Bluetooth link (formerly Classic_Link_A2DP_Receiver).
+  Bluetooth transmitter for RotaTune (S3 player v0.16.9 and later). Runs on the
   ORIGINAL ESP32 (ESP32-U4WDH). Link protocol version 3.
 
   New in v0.5.0 (on top of v0.4.0):
@@ -1051,7 +1052,7 @@ void setup() {
   delay(500);
   Serial.println();
   Serial.println("==============================================");
-  Serial.printf(" Classic_Link_A2DP_Receiver v%s\n", SKETCH_VERSION);
+  Serial.printf(" RotaTune_Bluetooth v%s\n", SKETCH_VERSION);
   Serial.println(" S3 UART link -> ring buffer -> Bluetooth A2DP");
   Serial.println(" PCM5100A XSMT (GPIO32) set HIGH (unmuted)");
   Serial.println(" Volume-control mode 1 (A2DPNoVolumeControl: PCM never scaled)");

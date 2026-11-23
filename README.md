@@ -1,6 +1,10 @@
-# Waveshare Knob Music Player
+# RotaTune
 
-This is an MP3 player for the **Waveshare ESP32-S3-Knob-Touch-LCD-1.8**, the round 360×360 touch display with a rotary knob. It plays music from a microSD card through the 3.5 mm jack, or through a Bluetooth speaker or earbuds. Bluetooth uses the board's second chip, an ESP32.
+**An MP3 music player for the Waveshare ESP32-S3-Knob-Touch-LCD-1.8**
+
+RotaTune is an open-source, dual-processor music player for the **Waveshare ESP32-S3-Knob-Touch-LCD-1.8**, a development board with a round 360×360 touch display and a rotary encoder. It plays music from a microSD card through the 3.5 mm jack, or through a Bluetooth speaker or earbuds. The ESP32-S3 runs the player; the board's second chip, an ESP32, handles Bluetooth.
+
+RotaTune is an independent project and is not made or endorsed by Waveshare.
 
 ![Screens overview](docs/images/00_overview.png)
 
@@ -13,7 +17,7 @@ This is an MP3 player for the **Waveshare ESP32-S3-Knob-Touch-LCD-1.8**, the rou
 - **Playlists:** create, play, add tracks to and delete M3U playlists on the device. They are stored in `Music_Library/Playlists`. Playlists made on a PC also work, including Windows paths.
 - **Shuffle and repeat:** shuffle can be on or off; repeat can be off, all or one track.
 - **Spectrum display:** tap the spectrum to switch between Mirror, Bars, Radial, Scope, Levels and Off.
-- **Knob:** sets the volume while playing, and turns pages in the browser.
+- **Rotary encoder:** sets the volume while playing, and turns pages in the browser.
 - **Bluetooth output:** find speakers, keep two saved speakers, and switch between wired and Bluetooth from the Output page. The knob sets the speaker's own volume (AVRCP). Playback continues if the speaker goes out of range.
 - **Appearance settings:** change the colours and font sizes on the device. They are saved to the SD card.
 
@@ -34,8 +38,8 @@ Both chips are on the board, and the link between them is the board's own wiring
 ## Repository layout
 
 ```
-firmware/Waveshare_Music_Player/        ESP32-S3 sketch (player, display, SD card)
-firmware/Classic_Link_A2DP_Receiver/    ESP32 sketch (Bluetooth A2DP source)
+firmware/RotaTune/                      ESP32-S3 sketch (player, display, SD card)
+firmware/RotaTune_Bluetooth/            ESP32 sketch (Bluetooth A2DP source; also unmutes the DAC)
 firmware/lv_conf.h                      LVGL configuration used during development
 docs/images/                            screen images
 tools/render_screens.py                 script that draws the screen images
@@ -86,7 +90,7 @@ Copy `firmware/lv_conf.h` into your Arduino `libraries` folder, next to the `lvg
 
 ### ESP32-S3 (player)
 
-1. Open `firmware/Waveshare_Music_Player/Waveshare_Music_Player.ino`.
+1. Open `firmware/RotaTune/RotaTune.ino`.
 2. Board settings:
    - Board: **ESP32S3 Dev Module**
    - Flash size: **16MB**
@@ -96,7 +100,7 @@ Copy `firmware/lv_conf.h` into your Arduino `libraries` folder, next to the `lvg
 
 ### ESP32 (Bluetooth)
 
-1. Open `firmware/Classic_Link_A2DP_Receiver/Classic_Link_A2DP_Receiver.ino`.
+1. Open `firmware/RotaTune_Bluetooth/RotaTune_Bluetooth.ino`.
 2. Board: **ESP32 Dev Module**. Partition scheme: **Huge APP (3MB No OTA/1MB SPIFFS)**.
 3. Upload to the board's ESP32 chip.
    <!-- TODO: describe how to select the ESP32 chip for uploading on this board. -->
@@ -127,7 +131,7 @@ At first boot the player scans each library and writes its index, which takes a 
 
 ## Using it
 
-The full **[User Guide](docs/USER_GUIDE.md)** ([PDF](docs/USER_GUIDE.pdf)) explains every screen. In brief:
+The full **[User Guide](docs/USER_GUIDE.md)** ([PDF](docs/RotaTune_User_Guide.pdf)) explains every screen. In brief:
 
 
 - **Select Music page:** choose a library, PLAYLISTS, or OUTPUT (on page 2). SHUF, SETTINGS and RPT are along the top.

@@ -1,5 +1,6 @@
 /*
-  Waveshare Music Player v0.18.0 - first public release
+  RotaTune v0.18.0 - first public release
+  An MP3 music player for the Waveshare ESP32-S3-Knob-Touch-LCD-1.8
 
   v0.18.0 changes (from v0.17.7):
   - Libraries are discovered on the SD card: every folder directly inside
@@ -599,7 +600,7 @@ static void settingsSaveEvent(lv_event_t *e) {
     lv_label_set_text(settingsStatusLabel,"SAVE FAILED - CHECK SD CARD");
     return;
   }
-  fprintf(f,"# Waveshare Music Player appearance settings\n# RGB888 colors\n");
+  fprintf(f,"# RotaTune appearance settings\n# RGB888 colors\n");
   for(size_t i=0;i<PLAYER_COLOR_GROUP_COUNT;++i) {
     PlayerColorGroup &g=playerColorGroups[i];
     fprintf(f,"%s=0x%06lX\n%s=0x%06lX\n",
@@ -4942,7 +4943,7 @@ void setup() {
 
   Serial.println();
   Serial.println("==========================================");
-  Serial.printf(" Waveshare Music Player v%s\n", PLAYER_VERSION);
+  Serial.printf(" RotaTune v%s\n", PLAYER_VERSION);
   Serial.println(" ESP32-S3 / MP3 + SH8601 display");
   Serial.println("==========================================");
 

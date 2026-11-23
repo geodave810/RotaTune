@@ -1,7 +1,7 @@
 // link_protocol.h  -  S3 <-> classic ESP32 PCM link, protocol version 3
 // ---------------------------------------------------------------------------
-// THIS FILE MUST BE IDENTICAL in Waveshare_Music_Player (S3) and
-// Classic_Link_A2DP_Receiver. Change both copies together.
+// THIS FILE MUST BE IDENTICAL in RotaTune (S3) and
+// RotaTune_Bluetooth. Change both copies together.
 //
 // Version 2 (v0.16.8 / receiver v0.4.0) = version 1 (hardware-tested in
 // Step 3) plus:
