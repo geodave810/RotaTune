@@ -147,6 +147,17 @@ The full **[User Guide](docs/USER_GUIDE.md)** ([PDF](docs/RotaTune_User_Guide.pd
   - SPEAKER rows switch between the saved speakers; FORGET removes one.
 - **Playlists:** NEW PLAYLIST opens a keyboard for the name. ADD TRACKS lets you browse normally, and each track or album you tap is added. Tap DONE ADDING to finish.
 
+## Support This Project ☕
+
+This project is released as open source and free to use.
+
+If you find it useful and would like to support continued development,
+documentation, and future improvements, you can:
+
+☕ **Buy me a coffee:** <https://buymeacoffee.com/geodave>
+
+Support is entirely optional, but always appreciated.
+
 ## Licence
 
 This project is licensed under the **GNU General Public License v3.0** (see `LICENSE`). It uses AudioTools (DevLab_AudioTools, originally arduino-audio-tools by Phil Schatzmann), which is also GPL-3.0.
