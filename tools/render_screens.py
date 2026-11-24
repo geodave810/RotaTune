@@ -320,13 +320,14 @@ def scr_playing(path, style="MIRROR", bt=False, state="PLAYING", show_name=False
     s.text("Lighthouse Song", 15, 125, 330, 72, 20, PB_TITLE)
     s.text("TRACK 3 OF 12", 42, 198, 150, 24, 18, TRACK_TX, align="left")
     s.button(360 - 42 - 100, 194, 100, 34, 0x075A9C, "BROWSE", 0xFFFFFF, 14, 9)
-    for xo, cap, c in [(-92, "|<", PB_BTN), (0, "PAUSE" if state == "PLAYING" else "PLAY", PB_TOGGLE),
-                       (92, ">|", PB_BTN)]:
-        s.button(top_mid(76, xo), 232, 76, 42, c, cap, 0xFFFFFF, 16, 12)
-    s.text("1:42", 42, 280, 58, 22, 18, 0xFFFFFF, align="left")
-    s.text("4:07", 360 - 42 - 58, 280, 58, 22, 18, VOL_TX, align="right")
-    s.rect(55, 305, 250, 14, PROG_BG, 4)
-    s.rect(55, 305, int(250 * 102 / 247), 14, PROG_FILL, 4)
+    # v0.18.4: times + progress bar above the buttons
+    s.text("1:42", 45, 234, 58, 22, 18, 0xFFFFFF, align="left")
+    s.text("4:07", 360 - 45 - 58, 234, 58, 22, 18, VOL_TX, align="right")
+    s.rect(45, 259, 270, 14, PROG_BG, 4)
+    s.rect(45, 259, int(270 * 102 / 247), 14, PROG_FILL, 4)
+    for xo, cap, c in [(-84, "|<", PB_BTN), (0, "PAUSE" if state == "PLAYING" else "PLAY", PB_TOGGLE),
+                       (84, ">|", PB_BTN)]:
+        s.button(top_mid(70, xo), 281, 70, 38, c, cap, 0xFFFFFF, 16, 12)
     s.text(state, 0, 330, 360, 20, 16, PB_STATE, spacing=2)
     s.finish(path)
 

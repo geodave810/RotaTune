@@ -1,8 +1,13 @@
 # RotaTune changelog
 
+## 0.18.4
+- Playing screen: the times and progress bar now sit above the |< PAUSE >| buttons. The bar is no longer cut off by the round screen, and it is wider (270 px).
+- The playback buttons are slightly smaller (70 × 38) so they fit inside the circle lower down.
+
 ## 0.18.3
 - Volume arc along the top edge of the playing screen, with a larger volume number under it.
 - In Bluetooth mode the number shows `BT 45%`, or `WAITING` / `NO LINK` with a grey arc.
+- `lv_conf.h`: `LV_COLOR_16_SWAP` set to 1. The display expects the two colour bytes the other way round; with 0, every colour was wrong (navy showed as mauve, blue as orange) and text and button edges had coloured fringes. Rebuild with the new `lv_conf.h`. Colours saved in SETTINGS with an older build may need SETTINGS → DEFAULT → SAVE.
 
 ## 0.18.2
 - **Browse Albums** and **Browse Songs**: A–Z letter grids like Browse Artists, listing every album or song in the library that starts with the letter, as "Name (Artist)".

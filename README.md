@@ -12,7 +12,7 @@ RotaTune is an independent project and is not made or endorsed by Waveshare.
 
 ## Features
 
-- **Music libraries:** each folder in `Music_Library` on the SD card is a library, up to 8. You can browse a library by artist (A–Z), album and track, or folder by folder. **PLAY ALBUM** and **PLAY FOLDER** play a whole album or folder.
+- **Music libraries:** each folder in `Music_Library` on the SD card is a library, up to 8. You can browse a library by artist, album or song (each A–Z), or folder by folder. **PLAY ALBUM** and **PLAY FOLDER** play a whole album or folder.
 - **Fast browsing:** the player builds an index of each library on the SD card. It keeps the index of the library you're browsing in PSRAM, so even libraries with thousands of songs page quickly. **RESCAN** rebuilds the indexes after you add music.
 - **Playlists:** create, play, add tracks to and delete M3U playlists on the device. They are stored in `Music_Library/Playlists`. Playlists made on a PC also work, including Windows paths.
 - **Shuffle and repeat:** shuffle can be on or off; repeat can be off, all or one track.
@@ -86,7 +86,7 @@ To install ESP32-A2DP:
 1. On its GitHub page, click **Code → Download ZIP**, or download version 1.8.12 from its Releases page.
 2. In the Arduino IDE, choose **Sketch → Include Library → Add .ZIP Library…** and pick the downloaded file.
 
-Copy `firmware/lv_conf.h` into your Arduino `libraries` folder, next to the `lvgl` folder. It enables the Montserrat fonts 12–28 and sets a 48 KB LVGL memory pool.
+Copy `firmware/lv_conf.h` into your Arduino `libraries` folder, next to the `lvgl` folder. It enables the Montserrat fonts 12–28, sets a 48 KB LVGL memory pool and sets `LV_COLOR_16_SWAP 1`, which this display needs. With an `lv_conf.h` that has `LV_COLOR_16_SWAP 0`, every colour is wrong and edges look jagged.
 
 ### ESP32-S3 (player)
 
@@ -139,24 +139,13 @@ The full **[User Guide](docs/USER_GUIDE.md)** ([PDF](docs/RotaTune_User_Guide.pd
 - **Playing screen:**
   - Tap the spectrum to change its style.
   - Tap the progress bar to seek.
-  - Tap the volume line to open the Output page.
+  - Tap the volume number under the arc to open the Output page.
   - BROWSE goes back to the library.
 - **Output page:**
   - USE WIRED / USE BLUETOOTH switches the output.
   - FIND SPEAKERS searches for speakers; tap a found one to connect and save it.
   - SPEAKER rows switch between the saved speakers; FORGET removes one.
 - **Playlists:** NEW PLAYLIST opens a keyboard for the name. ADD TRACKS lets you browse normally, and each track or album you tap is added. Tap DONE ADDING to finish.
-
-## Support This Project ☕
-
-This project is released as open source and free to use.
-
-If you find it useful and would like to support continued development,
-documentation, and future improvements, you can:
-
-☕ **Buy me a coffee:** <https://buymeacoffee.com/geodave>
-
-Support is entirely optional, but always appreciated.
 
 ## Licence
 

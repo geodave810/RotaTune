@@ -1,6 +1,17 @@
 /*
-  RotaTune v0.18.3 - volume arc
+  RotaTune v0.18.4 - progress bar above the playback buttons
   An MP3 music player for the Waveshare ESP32-S3-Knob-Touch-LCD-1.8
+
+  v0.18.4 changes (from v0.18.3):
+  - Playing screen: the times and progress bar move up to where the |< PAUSE >|
+    buttons were, and the buttons move down below them. The bar was cut off
+    at both ends by the round screen; higher up the screen is wider, so the
+    bar is now 270 px (was 250) and fully visible.
+  - The buttons are 70 x 38 (were 76 x 42), 84 px apart, so their lower
+    corners stay inside the circle. These values replace PLAYBACK_BUTTON_*
+    in player_ui_config.h, which are no longer used.
+
+  Earlier (v0.18.3): volume arc
 
   v0.18.3 changes (from v0.18.2):
   - The volume line on the playing screen is replaced by an arc along the top
@@ -322,7 +333,7 @@ static constexpr int BOARD_ENCODER_A = 8;
 static constexpr int BOARD_ENCODER_B = 7;
 static constexpr int VOLUME_STEP = 2;
 
-static constexpr char PLAYER_VERSION[] = "0.18.3";
+static constexpr char PLAYER_VERSION[] = "0.18.4";
 
 // ---------------------- User interface color settings ------------------
 // Written by Waveshare_Color_Customizer_v0.1.2 to this SD-card file.
@@ -897,6 +908,15 @@ static lv_obj_t *progressBar = nullptr;
 static lv_obj_t *playPauseButtonLabel = nullptr;
 static lv_obj_t *volumeLabel = nullptr;
 static lv_obj_t *volumeArc = nullptr;   // v0.18.3
+// v0.18.4 playing-screen layout below the title (kept here, not in player_ui_config.h).
+static constexpr int PLAY_TIME_Y        = 234;   // elapsed / duration labels
+static constexpr int PLAY_PROGRESS_Y    = 259;
+static constexpr int PLAY_PROGRESS_W    = 270;
+static constexpr int PLAY_PROGRESS_H    = 14;
+static constexpr int PLAY_BUTTON_Y      = 281;
+static constexpr int PLAY_BUTTON_W      = 70;
+static constexpr int PLAY_BUTTON_H      = 38;
+static constexpr int PLAY_BUTTON_SPACING = 84;   // centre to centre
 // v0.18.3 volume arc layout (kept here, not in player_ui_config.h).
 static constexpr int VOLUME_ARC_DIAMETER = 352;     // outer edge 4 px inside the round screen
 static constexpr int VOLUME_ARC_WIDTH    = 6;
@@ -1937,8 +1957,8 @@ static void playbackButtonEvent(lv_event_t *event) {
 static lv_obj_t *createPlaybackButton(lv_obj_t *parent, const char *caption,
                                       int x, PlaybackAction action) {
   lv_obj_t *button = lv_btn_create(parent);
-  lv_obj_set_size(button, PlayerUIConfig::PLAYBACK_BUTTON_WIDTH, PlayerUIConfig::PLAYBACK_BUTTON_HEIGHT);
-  lv_obj_align(button, LV_ALIGN_TOP_MID, x, PlayerUIConfig::PLAYBACK_BUTTON_Y);
+  lv_obj_set_size(button, PLAY_BUTTON_W, PLAY_BUTTON_H);          // v0.18.4
+  lv_obj_align(button, LV_ALIGN_TOP_MID, x, PLAY_BUTTON_Y);
   uint32_t normalColor = uiPlaybackButtonBgWasLoaded ? uiPlaybackButtonBg :
                          ((action == ACTION_TOGGLE) ? COLOR_PLAYBACK_TOGGLE_BG : COLOR_PLAYBACK_BUTTON_BG);
   uint32_t pressedColor = (action == ACTION_TOGGLE) ? COLOR_PLAYBACK_TOGGLE_PRESSED : COLOR_PLAYBACK_BUTTON_PRESSED;
@@ -3937,7 +3957,7 @@ static void createMusicScreen() {
   lv_obj_set_style_text_color(elapsedLabel, lv_color_hex(COLOR_PLAYBACK_TIME_TEXT), LV_PART_MAIN);
   lv_obj_set_style_text_font(elapsedLabel, &lv_font_montserrat_18, LV_PART_MAIN);
   lv_obj_set_width(elapsedLabel, 58);
-  lv_obj_align(elapsedLabel, LV_ALIGN_TOP_LEFT, 42, 280);
+  lv_obj_align(elapsedLabel, LV_ALIGN_TOP_LEFT, (360 - PLAY_PROGRESS_W) / 2, PLAY_TIME_Y);
 
   durationLabel = lv_label_create(screen);
   lv_label_set_text(durationLabel, "0:00");
@@ -3945,11 +3965,11 @@ static void createMusicScreen() {
   lv_obj_set_style_text_font(durationLabel, &lv_font_montserrat_18, LV_PART_MAIN);
   lv_obj_set_width(durationLabel, 58);
   lv_obj_set_style_text_align(durationLabel, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-  lv_obj_align(durationLabel, LV_ALIGN_TOP_RIGHT, -42, 280);
+  lv_obj_align(durationLabel, LV_ALIGN_TOP_RIGHT, -(360 - PLAY_PROGRESS_W) / 2, PLAY_TIME_Y);
 
   progressBar = lv_bar_create(screen);
-  lv_obj_set_size(progressBar, 250, 14);
-  lv_obj_align(progressBar, LV_ALIGN_TOP_MID, 0, 305);
+  lv_obj_set_size(progressBar, PLAY_PROGRESS_W, PLAY_PROGRESS_H);   // v0.18.4: was 250 x 14 at y 305
+  lv_obj_align(progressBar, LV_ALIGN_TOP_MID, 0, PLAY_PROGRESS_Y);
   lv_bar_set_range(progressBar, 0, 1000);
   lv_bar_set_value(progressBar, 0, LV_ANIM_OFF);
   lv_obj_set_style_bg_color(progressBar, lv_color_hex(COLOR_PLAYBACK_PROGRESS_BG), LV_PART_MAIN);
@@ -3970,9 +3990,9 @@ static void createMusicScreen() {
   lv_obj_set_style_text_letter_space(playStateLabel, 2, LV_PART_MAIN);
   lv_obj_align(playStateLabel, LV_ALIGN_TOP_MID, 0, 330);
 
-  createPlaybackButton(screen, "|<", -92, ACTION_PREVIOUS);
+  createPlaybackButton(screen, "|<", -PLAY_BUTTON_SPACING, ACTION_PREVIOUS);
   lv_obj_t *playPauseButton = createPlaybackButton(screen, "PAUSE", 0, ACTION_TOGGLE);
-  createPlaybackButton(screen, ">|", 92, ACTION_NEXT);
+  createPlaybackButton(screen, ">|", PLAY_BUTTON_SPACING, ACTION_NEXT);
   playPauseButtonLabel = lv_obj_get_child(playPauseButton, 0);
 }
 
