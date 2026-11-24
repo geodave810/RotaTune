@@ -61,8 +61,12 @@ The **Select Music** page lists:
 
 Tap a library, then choose how to browse it:
 
-- **MUSIC  Browse Artists:** browse by artist, then album, then track. This uses the song tags (artist, album, track number).
+- **MUSIC  Browse Artists:** browse by artist, then album, then track.
+- **MUSIC  Browse Albums:** every album in the library, from A to Z.
+- **MUSIC  Browse Songs:** every song in the library, from A to Z.
 - **FILES  Browse Folders:** browse the folders exactly as they are on the card.
+
+Artists, Albums and Songs use the song tags (title, artist, album, track number).
 
 ### By artist
 
@@ -78,6 +82,24 @@ On the track list:
 - **PLAY  ALBUM** plays the whole album from the first track. With shuffle on, it starts on a random track instead.
 - **Tapping a track** plays it, then carries on through the rest of the album.
 
+### By album
+
+![Browse albums](images/16_browse_albums_M.png)
+
+1. Tap **Browse Albums**, then the first letter of the album name.
+2. Every album starting with that letter is listed as *Album (Artist)*. An album that appears under two artists, such as a "Greatest Hits", gets one row for each artist.
+3. Tap an album to see its tracks, with **PLAY  ALBUM** at the top. **BACK** returns to the same page of the album list.
+
+### By song
+
+![Browse songs](images/17_browse_songs_L.png)
+
+1. Tap **Browse Songs**, then the first letter of the song title.
+2. Every song starting with that letter is listed as *Title (Artist)*. A long letter can have many pages; turn the knob to move through them quickly.
+3. Tap a song to play it. The player then carries on through the rest of that song's album.
+
+Titles that start with a number or a symbol are under **#**. Titles starting with "The" are under **T**.
+
 ### By folder
 
 Folders appear as `FOLDER  name` and songs as `TRACK  name`.
@@ -91,7 +113,7 @@ Folders appear as `FOLDER  name` and songs as `TRACK  name`.
 
 | Part | What it does |
 |---|---|
-| **Volume line** (top) | Shows the volume. **Tap it** to open the Output page. |
+| **Volume arc and number** (top) | The arc along the top edge fills from left to right as the volume goes up, and the number under it shows the volume. **Tap the number** to open the Output page. |
 | **Spectrum** | Moves with the music. **Tap it** to change the style. |
 | **Title** | The song title, from its tags or file name. |
 | **TRACK n OF m** | Where you are in the current album, folder or playlist. |
@@ -168,7 +190,7 @@ If a playlist with that name already exists, it opens instead.
 1. Open the playlist and tap **ADD TRACKS**. The heading changes to **ADD TO** *playlist name*.
 2. Browse your music as usual, by artist or by folder.
 3. Add music:
-   - Tap a **track** to add it.
+   - Tap a **track** to add it. This also works in Browse Songs.
    - Tap **ADD  ALBUM** or **ADD  FOLDER** to add every track in that album or folder.
    - The heading briefly shows `ADDED n: name` to confirm.
 4. When you're finished, tap **PLAYING**, or **DONE ADDING** on the Select Music page. Either one takes you back to the playlist.
@@ -179,7 +201,7 @@ Playlists are ordinary `.m3u` files in `Music_Library/Playlists`, so you can als
 
 ![Output page](images/14_output.png)
 
-To open the **Output** page, tap the volume line on the playing screen, or tap the **OUTPUT** row on the Select Music page.
+To open the **Output** page, tap the volume number on the playing screen, or tap the **OUTPUT** row on the Select Music page.
 
 | Row | What it does |
 |---|---|
@@ -198,13 +220,13 @@ To open the **Output** page, tap the volume line on the playing screen, or tap t
 The speaker is now saved. Next time, choose **USE BLUETOOTH** and the player reconnects to it by itself. With two speakers already saved, a new one replaces the one that isn't in use.
 
 ### Volume with Bluetooth
-In Bluetooth mode, the knob sets the **speaker's own volume**, and the volume line shows `BT VOLUME n%`. If you change the volume on the speaker, the display follows it.
+In Bluetooth mode, the knob sets the **speaker's own volume**, and the number under the arc shows `BT n%`. If you change the volume on the speaker, the display follows it.
 
-| Volume line shows | Meaning |
+| Number under the arc | Meaning |
 |---|---|
-| `BT VOLUME 40%` | Connected and playing. |
-| `BT 40%  WAITING` | No speaker is connected yet, or it's out of range. The player keeps going and reconnects when it can. |
-| `BT 40%  NO LINK` | The player can't talk to its Bluetooth chip. Check that the Bluetooth firmware is installed (see the README). |
+| `BT 40%` | Connected and playing. |
+| `WAITING` (grey arc) | No speaker is connected yet, or it's out of range. The player keeps going and reconnects when it can. |
+| `NO LINK` (grey arc) | The player can't talk to its Bluetooth chip. Check that the Bluetooth firmware is installed (see the README). |
 
 Switching back to wired is instant. Reconnecting to Bluetooth takes a few seconds. Bluetooth range is shorter than a phone's, so keep the speaker within a few metres.
 
@@ -245,7 +267,7 @@ Rescanning reads every library again, which takes a while for large collections.
 | Problem | What to try |
 |---|---|
 | No sound from the headphone jack | Check that **USING  WIRED** is selected on the Output page. The Bluetooth chip's firmware must be installed even for wired sound, because it turns the audio chip on (see the README). |
-| No sound from the Bluetooth speaker | Check that the volume line doesn't say WAITING. Turn the speaker off and on, then tap its **SPEAKER** row. If that doesn't work, use **FORGET**, then **FIND SPEAKERS** again. |
+| No sound from the Bluetooth speaker | Check that the volume number doesn't say WAITING. Turn the speaker off and on, then tap its **SPEAKER** row. If that doesn't work, use **FORGET**, then **FIND SPEAKERS** again. |
 | "No MP3 files found" | Make sure the music is in folders inside `Music_Library`, and the files are MP3. |
 | A library or new songs don't appear | Tap **RESCAN** twice (see section 9). |
 | An artist is missing from Browse Artists | The songs may have no artist tag. Try **Browse Folders**. |

@@ -1,5 +1,15 @@
 # RotaTune changelog
 
+## 0.18.3
+- Volume arc along the top edge of the playing screen, with a larger volume number under it.
+- In Bluetooth mode the number shows `BT 45%`, or `WAITING` / `NO LINK` with a grey arc.
+
+## 0.18.2
+- **Browse Albums** and **Browse Songs**: A–Z letter grids like Browse Artists, listing every album or song in the library that starts with the letter, as "Name (Artist)".
+- Tapping a song plays it and continues through its album. In ADD TRACKS mode, a tap adds the song to the playlist.
+- These lists have no length limit.
+- The version number shown at start-up is correct again (it said 0.17.6).
+
 ## 0.18.0: first public release
 - Project named RotaTune.
 - Libraries are found on the SD card: each folder in `Music_Library` is a library (up to 8).

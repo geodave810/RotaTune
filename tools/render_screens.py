@@ -153,7 +153,8 @@ def scr_root(path):
 
 def scr_collection(path):
     s = browser_base("Rock")
-    browser_rows(s, ["MUSIC  Browse Artists", "FILES  Browse Folders"], 1, 1, library=True)
+    browser_rows(s, ["MUSIC  Browse Artists", "MUSIC  Browse Albums", "MUSIC  Browse Songs",
+                     "FILES  Browse Folders"], 1, 1, library=True)
     s.finish(path)
 
 
@@ -164,6 +165,22 @@ def scr_letters(path):
         col, row = i % 6, i // 6
         letter = chr(65 + i) if i < 26 else "#"
         s.button(px0 + 4 + col * 46, py0 + 3 + row * 32, 42, 27, CTRL_BG, letter, CTRL_TX, 16, 6)
+    s.finish(path)
+
+
+def scr_song_index(path):
+    s = browser_base("SONGS  L")
+    browser_rows(s, ["Lazy Sunday Morning  (Ann Rivers)", "Lighthouse Song  (The Blue Lanterns)",
+                     "Little Paper Boats  (Harbor Kids)", "Long Way Home  (The Blue Lanterns)",
+                     "Lost in the Static  (Northbound)"], 1, 7)
+    s.finish(path)
+
+
+def scr_album_index(path):
+    s = browser_base("ALBUMS  M")
+    browser_rows(s, ["Maple Street  (Ann Rivers)", "Midnight Harbor  (The Blue Lanterns)",
+                     "Mirror Lake  (Northbound)", "Moonlight Radio  (Various)",
+                     "Morning Ferry  (Harbor Kids)"], 1, 3)
     s.finish(path)
 
 
@@ -280,7 +297,18 @@ def scr_playing(path, style="MIRROR", bt=False, state="PLAYING", show_name=False
     global REST
     REST = state != "PLAYING"
     s = Screen(PB_BG)
-    s.text("BT VOLUME 40%" if bt else "VOLUME 45%", 0, 22, 360, 22, 18, VOL_TX)
+    # v0.18.3 volume arc: diameter 352, width 6, 238..302 degrees, value 0-100
+    vol = 40 if bt else 45
+    def arc(a0, a1, color):
+        box = [4 * SS, 4 * SS, 356 * SS - 1, 356 * SS - 1]
+        s.d.arc(box, a0, a1, fill=hexc(color), width=6 * SS)
+        for ang in (a0, a1):            # rounded ends
+            rad = math.radians(ang); rr = 173
+            cx, cy = 180 + rr * math.cos(rad), 180 + rr * math.sin(rad)
+            s.d.ellipse([(cx - 3) * SS, (cy - 3) * SS, (cx + 3) * SS, (cy + 3) * SS], fill=hexc(color))
+    arc(238, 302, 0x263342)
+    arc(238, 238 + 64 * vol / 100, 0x2997F0)
+    s.text(f"BT {vol}%" if bt else f"{vol}%", 0, 12, 360, 28, 24, VOL_TX)
     if style != "OFF":
         s.rect(EQ_LEFT - 4, BASE - 1, EQ_W + 8, 2, EQ_BASE)
         draw_spectrum(s, style)
@@ -346,6 +374,8 @@ if __name__ == "__main__":
     scr_root(j("01_select_music.png"))
     scr_collection(j("02_library_menu.png"))
     scr_letters(j("03_browse_artists.png"))
+    scr_album_index(j("16_browse_albums_M.png"))
+    scr_song_index(j("17_browse_songs_L.png"))
     scr_albums(j("04_albums.png"))
     scr_tracks(j("05_album_tracks.png"))
     scr_playing(j("06_now_playing.png"))

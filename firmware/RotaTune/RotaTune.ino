@@ -1,6 +1,29 @@
 /*
-  RotaTune v0.18.0 - first public release
+  RotaTune v0.18.3 - volume arc
   An MP3 music player for the Waveshare ESP32-S3-Knob-Touch-LCD-1.8
+
+  v0.18.3 changes (from v0.18.2):
+  - The volume line on the playing screen is replaced by an arc along the top
+    edge of the round screen, filling left to right with the volume, and a
+    larger number under it ("45%", "BT 45%", or "WAITING" / "NO LINK" in
+    Bluetooth mode). The arc turns grey while Bluetooth is waiting or has no
+    link. Tapping the number still opens the Output page.
+
+  Earlier (v0.18.2): Browse Albums and Browse Songs (A-Z)
+
+  v0.18.2 changes (from v0.18.0/v0.18.1):
+  - The library menu has Browse Artists, Browse Albums, Browse Songs and
+    Browse Folders. Albums and Songs use the same A-Z letter grid as Artists.
+  - Albums: every album starting with the letter, shown as "Album  (Artist)";
+    tap one to see its tracks (PLAY ALBUM / ADD ALBUM as usual).
+  - Songs: every song title starting with the letter, shown as
+    "Title  (Artist)"; tap one to play it and carry on through its album.
+    In ADD TRACKS mode a tap adds the song to the playlist.
+  - The lists have no length limit (only the 5 visible rows are built); the
+    sorted match list is kept in PSRAM until the letter or library changes.
+  - PLAYER_VERSION was still "0.17.6"; now matches the release.
+
+  Earlier (v0.18.0): first public release
 
   v0.18.0 changes (from v0.17.7):
   - Libraries are discovered on the SD card: every folder directly inside
@@ -299,7 +322,7 @@ static constexpr int BOARD_ENCODER_A = 8;
 static constexpr int BOARD_ENCODER_B = 7;
 static constexpr int VOLUME_STEP = 2;
 
-static constexpr char PLAYER_VERSION[] = "0.17.6";
+static constexpr char PLAYER_VERSION[] = "0.18.3";
 
 // ---------------------- User interface color settings ------------------
 // Written by Waveshare_Color_Customizer_v0.1.2 to this SD-card file.
@@ -808,13 +831,22 @@ struct BrowserEntry {
 enum BrowserView : uint8_t { BROWSER_ROOT, BROWSER_COLLECTION_MENU, BROWSER_FOLDERS,
                               BROWSER_LETTERS, BROWSER_ARTISTS, BROWSER_ALBUMS, BROWSER_TRACKS,
                               BROWSER_OUTPUT /* v0.16.9 */,
-                              BROWSER_PLAYLISTS, BROWSER_PLAYLIST /* v0.17.2 */ };
+                              BROWSER_PLAYLISTS, BROWSER_PLAYLIST /* v0.17.2 */,
+                              BROWSER_ALBUM_INDEX, BROWSER_SONG_INDEX /* v0.18.2 */ };
 static BrowserView browserView = BROWSER_ROOT;
 static size_t selectedLibraryIndex = 0;
 static char selectedArtist[96] = {};
 static char selectedAlbum[128] = {};
 static char selectedLetter = 'A';
 static volatile int pendingBrowserLetter = 0;
+// v0.18.2: what the A-Z grid is for, and where the track list was opened from.
+enum LetterMode : uint8_t { LETTERS_ARTISTS, LETTERS_ALBUMS, LETTERS_SONGS };
+static LetterMode letterMode = LETTERS_ARTISTS;
+static bool tracksFromAlbumIndex = false;
+static size_t albumIndexPage = 0;
+static inline bool browserViewIsPaged(BrowserView v) {   // only the visible page is in browserEntries
+  return v == BROWSER_FOLDERS || v == BROWSER_ALBUM_INDEX || v == BROWSER_SONG_INDEX;
+}
 
 // v0.17.2: playlist state (used by the library list, so declared here).
 static constexpr char PLAYLIST_DIR[] = "/sdcard/Music_Library/Playlists";
@@ -864,6 +896,16 @@ static lv_obj_t *durationLabel = nullptr;
 static lv_obj_t *progressBar = nullptr;
 static lv_obj_t *playPauseButtonLabel = nullptr;
 static lv_obj_t *volumeLabel = nullptr;
+static lv_obj_t *volumeArc = nullptr;   // v0.18.3
+// v0.18.3 volume arc layout (kept here, not in player_ui_config.h).
+static constexpr int VOLUME_ARC_DIAMETER = 352;     // outer edge 4 px inside the round screen
+static constexpr int VOLUME_ARC_WIDTH    = 6;
+static constexpr int VOLUME_ARC_START    = 238;     // LVGL degrees: 270 = top centre, clockwise
+static constexpr int VOLUME_ARC_END      = 302;
+static constexpr int VOLUME_LABEL_Y      = 12;
+static constexpr uint32_t VOLUME_ARC_TRACK   = 0x263342;
+static constexpr uint32_t VOLUME_ARC_FILL    = 0x2997F0;
+static constexpr uint32_t VOLUME_ARC_INACTIVE = 0x5A6470;
 static int volumePercent = 45;
 static knob_handle_t volumeEncoder = nullptr;
 static portMUX_TYPE encoderEventMux = portMUX_INITIALIZER_UNLOCKED;
@@ -2103,7 +2145,9 @@ static size_t indexRecordCount = 0, indexRecordCap = 0;
 static int cachedLibrary = -1;          // library held in PSRAM, -1 = none
 static int cacheFailedLibrary = -1;     // don't retry a failed load on every tap
 
+static void freeLetterMatches();   // v0.18.2
 static void freeLibraryCache() {
+  freeLetterMatches();
   if (indexPool) heap_caps_free(indexPool);
   if (indexRecords) heap_caps_free(indexRecords);
   indexPool = nullptr; indexRecords = nullptr;
@@ -2278,6 +2322,123 @@ static void populateTrackEntriesFromCache() {
   else sortTrackBrowserEntries();
   Serial.printf("[BROWSE] %u visible track(s) for %s / %s\n",
                 (unsigned)(browserEntryCount ? browserEntryCount - 1 : 0), selectedArtist, selectedAlbum);
+}
+
+// ===================== v0.18.2: Browse Albums / Browse Songs =================
+// The records whose album (or song title) starts with the selected letter are
+// collected as record numbers in PSRAM and sorted once; each page then builds
+// only its five rows. Albums are one row per album + artist.
+static uint32_t *letterMatches = nullptr;
+static size_t letterMatchCount = 0;
+static bool letterMatchesValid = false;
+static LetterMode letterMatchMode = LETTERS_ARTISTS;
+static char letterMatchLetter = 0;
+static int letterMatchLibrary = -1;
+
+static void noteAdded(size_t added, const char *what);          // defined with the playlists
+static bool appendPathToOpenPlaylist(const char *absolutePath);
+static void loadIndexedAlbumQueue(const char *selectedPath);
+
+static void freeLetterMatches() {
+  if (letterMatches) heap_caps_free(letterMatches);
+  letterMatches = nullptr;
+  letterMatchCount = 0;
+  letterMatchesValid = false;
+}
+
+static const char *recordTitle(const IndexRecord &r) {
+  const char *title = poolStr(r.title);
+  if (title[0]) return title;
+  const char *path = poolStr(r.path);
+  const char *base = strrchr(path, '/');
+  return base ? base + 1 : path;
+}
+
+static int compareSongRecords(const void *a, const void *b) {
+  const IndexRecord &ra = indexRecords[*(const uint32_t *)a], &rb = indexRecords[*(const uint32_t *)b];
+  int c = strcasecmp(recordTitle(ra), recordTitle(rb));
+  return c ? c : strcasecmp(poolStr(ra.artist), poolStr(rb.artist));
+}
+
+static int compareAlbumRecords(const void *a, const void *b) {
+  const IndexRecord &ra = indexRecords[*(const uint32_t *)a], &rb = indexRecords[*(const uint32_t *)b];
+  int c = strcasecmp(recordAlbum(ra), recordAlbum(rb));
+  return c ? c : strcasecmp(poolStr(ra.artist), poolStr(rb.artist));
+}
+
+static bool buildLetterMatches(LetterMode mode) {
+  if (letterMatchesValid && letterMatchMode == mode && letterMatchLetter == selectedLetter &&
+      letterMatchLibrary == (int)selectedLibraryIndex && cachedLibrary == (int)selectedLibraryIndex)
+    return true;
+  freeLetterMatches();
+  if (!ensureLibraryCache() || indexRecordCount == 0) return false;
+  letterMatches = (uint32_t *)heap_caps_malloc(indexRecordCount * sizeof(uint32_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (!letterMatches) { Serial.println("[BROWSE] No PSRAM for the letter list."); return false; }
+  uint32_t startMs = millis();
+  for (size_t n = 0; n < indexRecordCount; ++n) {
+    const IndexRecord &r = indexRecords[n];
+    if (mode == LETTERS_ALBUMS) {
+      if (r.album == NO_ALBUM || !poolStr(r.artist)[0]) continue;   // the album's tracks are found by artist
+      if (artistInitial(recordAlbum(r)) != selectedLetter) continue;
+    } else if (artistInitial(recordTitle(r)) != selectedLetter) continue;
+    letterMatches[letterMatchCount++] = (uint32_t)n;
+  }
+  qsort(letterMatches, letterMatchCount, sizeof(uint32_t),
+        mode == LETTERS_ALBUMS ? compareAlbumRecords : compareSongRecords);
+  if (mode == LETTERS_ALBUMS && letterMatchCount > 1) {   // one row per album + artist
+    size_t kept = 1;
+    for (size_t i = 1; i < letterMatchCount; ++i)
+      if (compareAlbumRecords(&letterMatches[i], &letterMatches[kept - 1]) != 0)
+        letterMatches[kept++] = letterMatches[i];
+    letterMatchCount = kept;
+  }
+  letterMatchMode = mode; letterMatchLetter = selectedLetter;
+  letterMatchLibrary = (int)selectedLibraryIndex; letterMatchesValid = true;
+  Serial.printf("[BROWSE] %u %s beginning with %c (%lu ms)\n", (unsigned)letterMatchCount,
+                mode == LETTERS_ALBUMS ? "album(s)" : "song(s)", selectedLetter,
+                (unsigned long)(millis() - startMs));
+  return true;
+}
+
+static void populateLetterIndexEntries(LetterMode mode) {
+  browserEntryCount = 0;
+  browserTotalEntries = 0;
+  if (!buildLetterMatches(mode)) return;
+  browserTotalEntries = letterMatchCount;
+  size_t first = browserPage * BROWSER_PAGE_SIZE;
+  for (size_t i = first; i < letterMatchCount && i < first + BROWSER_PAGE_SIZE; ++i) {
+    const IndexRecord &r = indexRecords[letterMatches[i]];
+    const char *artist = poolStr(r.artist);
+    char label[sizeof(((BrowserEntry *)0)->name)];
+    const char *name = mode == LETTERS_ALBUMS ? recordAlbum(r) : recordTitle(r);
+    if (artist[0]) snprintf(label, sizeof(label), "%.80s  (%.40s)", name, artist);
+    else strlcpy(label, name, sizeof(label));
+    addBrowserEntry(label, poolStr(r.path), false);
+  }
+}
+
+// Tap on a row of Browse Albums / Browse Songs (selection = position in the list).
+static void handleLetterIndexSelection(size_t selection) {
+  if (!letterMatches || selection >= letterMatchCount) return;
+  const IndexRecord &r = indexRecords[letterMatches[selection]];
+  strlcpy(selectedArtist, poolStr(r.artist), sizeof(selectedArtist));
+  strlcpy(selectedAlbum, recordAlbum(r), sizeof(selectedAlbum));
+  if (browserView == BROWSER_ALBUM_INDEX) {
+    tracksFromAlbumIndex = true;
+    albumIndexPage = browserPage;
+    browserView = BROWSER_TRACKS; browserPage = 0; showBrowser();
+    return;
+  }
+  const char *path = poolStr(r.path);
+  if (playlistAddMode) { noteAdded(appendPathToOpenPlaylist(path) ? 1 : 0, recordTitle(r)); return; }
+  if (selectedArtist[0]) {
+    loadIndexedAlbumQueue(path);                 // play the song, then carry on through its album
+  } else {                                       // no artist tag: play just this song
+    strlcpy(trackPaths[0], path, PATH_LENGTH);
+    trackNumbers[0] = r.track; trackDiscNumbers[0] = r.disc;
+    trackCount = 1; currentTrack = 0;
+  }
+  startSelectedPlayback();
 }
 
 static void populateArtistEntries() {
@@ -2977,8 +3138,12 @@ static void populateBrowserEntries() {
       break;
     case BROWSER_COLLECTION_MENU:
       addBrowserEntry("Browse Artists", "", false);
+      addBrowserEntry("Browse Albums", "", false);    // v0.18.2
+      addBrowserEntry("Browse Songs", "", false);     // v0.18.2
       addBrowserEntry("Browse Folders", "", false);
       break;
+    case BROWSER_ALBUM_INDEX: populateLetterIndexEntries(LETTERS_ALBUMS); return;   // v0.18.2
+    case BROWSER_SONG_INDEX:  populateLetterIndexEntries(LETTERS_SONGS);  return;   // v0.18.2
     case BROWSER_ARTISTS:
       populateArtistEntries();
       break;
@@ -3031,7 +3196,11 @@ static void refreshBrowserScreen() {
     case BROWSER_PLAYLIST: heading = openPlaylistName; break;
     case BROWSER_COLLECTION_MENU: heading = MUSIC_LIBRARIES[selectedLibraryIndex].folder; break;
     case BROWSER_FOLDERS: { const char *slash = strrchr(browsePath, '/'); heading = slash ? slash + 1 : browsePath; break; }
-    case BROWSER_LETTERS: heading = "BROWSE ARTISTS"; break;
+    case BROWSER_LETTERS:
+      heading = letterMode == LETTERS_ALBUMS ? "BROWSE ALBUMS" : letterMode == LETTERS_SONGS ? "BROWSE SONGS" : "BROWSE ARTISTS";
+      break;
+    case BROWSER_ALBUM_INDEX: { static char h[32]; snprintf(h, sizeof(h), "ALBUMS  %c", selectedLetter); heading = h; break; }
+    case BROWSER_SONG_INDEX:  { static char h[32]; snprintf(h, sizeof(h), "SONGS  %c", selectedLetter); heading = h; break; }
     case BROWSER_ARTISTS: { static char h[32]; snprintf(h, sizeof(h), "ARTISTS  %c", selectedLetter); heading = h; break; }
     case BROWSER_ALBUMS: heading = selectedArtist; break;
     case BROWSER_TRACKS: heading = selectedAlbum; break;
@@ -3058,7 +3227,7 @@ static void refreshBrowserScreen() {
   }
   for (size_t row = 0; row < BROWSER_VISIBLE_ROWS; ++row) {
     if (!browserRowButtons[row] || !browserRowLabels[row]) continue;
-    size_t entryIndex = (browserView == BROWSER_FOLDERS) ? row : (firstEntry + row);
+    size_t entryIndex = browserViewIsPaged(browserView) ? row : (firstEntry + row);
     if (!letters && entryIndex < browserEntryCount) {
       char label[160]; char safeName[128];
       makeDisplayTitle(browserEntries[entryIndex].name, safeName, sizeof(safeName));
@@ -3069,7 +3238,7 @@ static void refreshBrowserScreen() {
       else if (browserView == BROWSER_FOLDERS)
         prefix = browserEntries[entryIndex].isAction ? (playlistAddMode ? "ADD  " : "PLAY  ") :
                  browserEntries[entryIndex].isDirectory ? "FOLDER  " : "TRACK  ";
-      else if (browserView == BROWSER_COLLECTION_MENU) prefix = entryIndex == 0 ? "MUSIC  " : "FILES  ";
+      else if (browserView == BROWSER_COLLECTION_MENU) prefix = entryIndex < 3 ? "MUSIC  " : "FILES  ";
       else if (browserView == BROWSER_TRACKS && browserEntries[entryIndex].isAction) prefix = playlistAddMode ? "ADD  " : "PLAY  ";
       snprintf(label, sizeof(label), "%s%s", prefix, safeName);
       lv_label_set_text(browserRowLabels[row], label);
@@ -3084,6 +3253,8 @@ static void refreshBrowserScreen() {
   }
   if (browserEmptyLabel) {
     const char *emptyText = browserView == BROWSER_ARTISTS ? "No artists for this letter" :
+                            browserView == BROWSER_ALBUM_INDEX ? "No albums for this letter" :
+                            browserView == BROWSER_SONG_INDEX ? "No songs for this letter" :
                             browserView == BROWSER_ALBUMS ? "No albums found" :
                             browserView == BROWSER_TRACKS ? "No tracks found" : "No folders or MP3 files here";
     lv_label_set_text(browserEmptyLabel, emptyText);
@@ -3474,7 +3645,8 @@ static void handleBrowserSelection() {
   if (letter) {
     pendingBrowserLetter = 0;
     selectedLetter = (char)letter;
-    browserView = BROWSER_ARTISTS;
+    browserView = letterMode == LETTERS_ALBUMS ? BROWSER_ALBUM_INDEX :      // v0.18.2
+                  letterMode == LETTERS_SONGS ? BROWSER_SONG_INDEX : BROWSER_ARTISTS;
     browserPage = 0;
     showBrowser();
     return;
@@ -3507,8 +3679,12 @@ static void handleBrowserSelection() {
       browserView = BROWSER_ROOT; browsePath[0] = 0; strlcpy(browsePath, MUSIC_ROOT, sizeof(browsePath)); browserHistoryDepth = 0;
     } else if (browserView == BROWSER_LETTERS) browserView = BROWSER_COLLECTION_MENU;
     else if (browserView == BROWSER_ARTISTS) browserView = BROWSER_LETTERS;
+    else if (browserView == BROWSER_ALBUM_INDEX || browserView == BROWSER_SONG_INDEX) browserView = BROWSER_LETTERS;   // v0.18.2
     else if (browserView == BROWSER_ALBUMS) browserView = BROWSER_ARTISTS;
-    else if (browserView == BROWSER_TRACKS) browserView = BROWSER_ALBUMS;
+    else if (browserView == BROWSER_TRACKS) {
+      if (tracksFromAlbumIndex) { browserView = BROWSER_ALBUM_INDEX; browserPage = albumIndexPage; }   // v0.18.2
+      else browserView = BROWSER_ALBUMS;
+    }
     else if (browserView == BROWSER_OUTPUT) browserView = BROWSER_ROOT;
     else if (browserView == BROWSER_FOLDERS) {
       char libraryRoot[PATH_LENGTH];
@@ -3532,8 +3708,12 @@ static void handleBrowserSelection() {
     refreshBrowserScreen(); return;
   }
   if (selection < 0) return;
-  size_t availableEntries = (browserView == BROWSER_FOLDERS) ? browserTotalEntries : browserEntryCount;
+  size_t availableEntries = browserViewIsPaged(browserView) ? browserTotalEntries : browserEntryCount;
   if ((size_t)selection >= availableEntries) return;
+  if (browserView == BROWSER_ALBUM_INDEX || browserView == BROWSER_SONG_INDEX) {   // v0.18.2
+    handleLetterIndexSelection((size_t)selection);
+    return;
+  }
   BrowserEntry chosen;
   if (browserView == BROWSER_FOLDERS && !isLibraryRoot(browsePath) && folderHasPlayAll && selection == 0) {
     memset(&chosen, 0, sizeof(chosen));            // v0.16.8: PLAY FOLDER
@@ -3574,8 +3754,10 @@ static void handleBrowserSelection() {
     return;
   }
   if (browserView == BROWSER_COLLECTION_MENU) {
-    if (selection == 0) browserView = BROWSER_LETTERS;
-    else {
+    if (selection <= 2) {                                       // v0.18.2: Artists / Albums / Songs
+      letterMode = selection == 1 ? LETTERS_ALBUMS : selection == 2 ? LETTERS_SONGS : LETTERS_ARTISTS;
+      browserView = BROWSER_LETTERS;
+    } else {
       browserView = BROWSER_FOLDERS;
       snprintf(browsePath, sizeof(browsePath), "%s/%s", MUSIC_ROOT, MUSIC_LIBRARIES[selectedLibraryIndex].folder);
       browserHistoryDepth = 0;
@@ -3598,6 +3780,7 @@ static void handleBrowserSelection() {
   }
   if (browserView == BROWSER_ALBUMS) {
     strlcpy(selectedAlbum, chosen.name, sizeof(selectedAlbum));
+    tracksFromAlbumIndex = false;                               // v0.18.2
     browserView = BROWSER_TRACKS; browserPage = 0; showBrowser(); return;
   }
   if (browserView == BROWSER_TRACKS) {
@@ -3665,14 +3848,37 @@ static void createMusicScreen() {
   lv_obj_add_event_cb(browseButton, browseButtonEvent, LV_EVENT_CLICKED, nullptr);
   lv_obj_t *browseText = lv_label_create(browseButton); lv_label_set_text(browseText, "BROWSE"); lv_obj_center(browseText);
 
+  // v0.18.3: volume arc along the top edge, display only (not touchable).
+  volumeArc = lv_arc_create(screen);
+  lv_obj_set_size(volumeArc, VOLUME_ARC_DIAMETER, VOLUME_ARC_DIAMETER);
+  lv_obj_center(volumeArc);
+  lv_arc_set_mode(volumeArc, LV_ARC_MODE_NORMAL);
+  lv_arc_set_bg_angles(volumeArc, VOLUME_ARC_START, VOLUME_ARC_END);
+  lv_arc_set_rotation(volumeArc, 0);
+  lv_arc_set_range(volumeArc, 0, 100);
+  lv_arc_set_value(volumeArc, 45);
+  lv_obj_clear_flag(volumeArc, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(volumeArc, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_opa(volumeArc, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_border_width(volumeArc, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(volumeArc, 0, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(volumeArc, VOLUME_ARC_WIDTH, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(volumeArc, lv_color_hex(VOLUME_ARC_TRACK), LV_PART_MAIN);
+  lv_obj_set_style_arc_rounded(volumeArc, true, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(volumeArc, VOLUME_ARC_WIDTH, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(volumeArc, lv_color_hex(VOLUME_ARC_FILL), LV_PART_INDICATOR);
+  lv_obj_set_style_arc_rounded(volumeArc, true, LV_PART_INDICATOR);
+  lv_obj_set_style_bg_opa(volumeArc, LV_OPA_TRANSP, LV_PART_KNOB);   // no knob
+  lv_obj_set_style_pad_all(volumeArc, 0, LV_PART_KNOB);
+
   volumeLabel = lv_label_create(screen);
-  lv_label_set_text(volumeLabel, "VOLUME 45%");
+  lv_label_set_text(volumeLabel, "45%");
   lv_obj_set_style_text_color(volumeLabel, lv_color_hex(COLOR_PLAYBACK_VOLUME_TEXT), LV_PART_MAIN);
-  lv_obj_set_style_text_font(volumeLabel, &lv_font_montserrat_18, LV_PART_MAIN);
-  lv_obj_align(volumeLabel, LV_ALIGN_TOP_MID, 0, 22);
+  lv_obj_set_style_text_font(volumeLabel, &lv_font_montserrat_24, LV_PART_MAIN);   // v0.18.3: was 18
+  lv_obj_align(volumeLabel, LV_ALIGN_TOP_MID, 0, VOLUME_LABEL_Y);
   // v0.17.2: tap the volume line to open the Output page.
   lv_obj_add_flag(volumeLabel, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_ext_click_area(volumeLabel, 12);
+  lv_obj_set_ext_click_area(volumeLabel, 16);
   lv_obj_add_event_cb(volumeLabel, volumeLineEvent, LV_EVENT_CLICKED, nullptr);
 
   lv_obj_t *baseline = lv_obj_create(screen);
@@ -4589,15 +4795,28 @@ static void resetTrackStats() {
 static void updateVolumeDisplay() {
   if (!volumeLabel || !lcd_lvgl_lock(20)) return;
   char text[32];
+  int arcValue = volumePercent;
+  bool active = true;
   if (outputMode == OUTPUT_BLUETOOTH) {
     int state = btDisplayState();
     int v = btVolumePercent < 0 ? 0 : btVolumePercent;
-    if (state == 0) snprintf(text, sizeof(text), "BT VOLUME %d%%", v);
-    else snprintf(text, sizeof(text), "BT %d%%  %s", v, state == 1 ? "WAITING" : "NO LINK");
+    arcValue = v;
+    active = state == 0;
+    // v0.18.3: short texts, so they fit the narrow top of the round screen.
+    if (state == 0) snprintf(text, sizeof(text), "BT %d%%", v);
+    else strlcpy(text, state == 1 ? "WAITING" : "NO LINK", sizeof(text));
   } else {
-    snprintf(text, sizeof(text), "VOLUME %d%%", volumePercent);
+    snprintf(text, sizeof(text), "%d%%", volumePercent);
   }
   lv_label_set_text(volumeLabel, text);
+  if (volumeArc) {
+    if (lv_arc_get_value(volumeArc) != arcValue) lv_arc_set_value(volumeArc, arcValue);
+    static int lastActive = -1;   // restyling redraws the whole arc object, so only on change
+    if (lastActive != (int)active) {
+      lastActive = active;
+      lv_obj_set_style_arc_color(volumeArc, lv_color_hex(active ? VOLUME_ARC_FILL : VOLUME_ARC_INACTIVE), LV_PART_INDICATOR);
+    }
+  }
   lcd_lvgl_unlock();
 }
 
